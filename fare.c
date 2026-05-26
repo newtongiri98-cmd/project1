@@ -3,14 +3,16 @@
 #include <ctype.h>
 #include <stdlib.h>
 
-#define MAX_station_name 150
-#define MAX_bus_name 150
-#define Discount_rate 0.35
+#define MAX_STATION_NAME  150
+#define MAX_BUS_NAME      150
+#define MAX_MATCHED_BUSES 20
+#define DISCOUNT_OLD_AGE  0.30
+#define DISCOUNT_STUDENT  0.35
 
 struct route {
-    char source[MAX_station_name];
-    char destination[MAX_station_name];
-    char busname[MAX_bus_name];
+    char source[MAX_STATION_NAME];
+    char destination[MAX_STATION_NAME];
+    char busname[MAX_BUS_NAME];
     int fare;
 };
 
@@ -101,9 +103,10 @@ struct route routes[] = {
     {"suryabinayak", "bhaktapur", "bhaktapur yatayat", 25}
 };
 
-int totalroutes = sizeof(routes) / sizeof(routes[0]);
+static const int totalRoutes = sizeof(routes) / sizeof(routes[0]);
 
-int equalsignorecase(const char *a, const char *b) {
+
+int equalsIgnoreCase(const char *a, const char *b) {
     if (a == NULL || b == NULL) return 0;
     while (*a && *b) {
         if (tolower((unsigned char)*a) != tolower((unsigned char)*b)) return 0;
@@ -113,7 +116,7 @@ int equalsignorecase(const char *a, const char *b) {
     return (*a == '\0' && *b == '\0');
 }
 
-void getstringinput(char *buffer, int size) {
+void getStringInput(char *buffer, int size)  {
     if (fgets(buffer, size, stdin) != NULL) {
         int len = strlen(buffer);
         if (len > 0 && buffer[len-1] == '\n') { buffer[len-1] = '\0'; len--; }
@@ -123,58 +126,136 @@ void getstringinput(char *buffer, int size) {
     }
 }
 
-void showfare(int fare) {
-    char ans[5];
-    printf("Student? (y/n): ");
-    getstringinput(ans, sizeof(ans));
-
-    if (tolower(ans[0]) == 'y') {
-        printf("Fare: Rs. %d\n", (int)(fare - fare * 0.35));
-    } else {
-        printf("Fare: Rs. %d\n", fare);
-    }
-}
-
-int findroute(const char *source, const char *dest) {
-    for (int i = 0; i < totalroutes; i++) {
-        if (equalsignorecase(routes[i].source, source) &&
-            equalsignorecase(routes[i].destination, dest)) {
-
-            printf("Bus: %s\n", routes[i].busname);
-            printf("Fare: %d\n", routes[i].fare);
-
-            showfare(routes[i].fare);
-            return 1;
-        }
+int isDuplicateBus(char list[][MAX_BUS_NAME], int count, const char *name) {
+    for (int i = 0; i < count; i++) {
+        if (equalsIgnoreCase(list[i], name)) return 1;
     }
     return 0;
 }
 
-int findtransfer(const char *source, const char *dest) {
-    int i, j;
-    int total;
 
-    for (i = 0; i < totalroutes; i++) {
-        if (!equalsignorecase(routes[i].source, source)) continue;
+int collectMatchingBuses(const char *source, const char *dest,
+                         char matchedBuses[][MAX_BUS_NAME],
+                         int matchedFares[]) {
+    int count = 0;
+    for (int i = 0; i < totalRoutes && count < MAX_MATCHED_BUSES; i++) {
+        int forward  = equalsIgnoreCase(routes[i].source, source) &&
+                       equalsIgnoreCase(routes[i].destination, dest);
+        int backward = equalsIgnoreCase(routes[i].source, dest) &&
+                       equalsIgnoreCase(routes[i].destination, source);
 
-        for (j = 0; j < totalroutes; j++) {
-            if (equalsignorecase(routes[j].source, routes[i].destination) &&
-                equalsignorecase(routes[j].destination, dest)) {
+        if (forward || backward) {
+            if (!isDuplicateBus(matchedBuses, count, routes[i].busname)) {
+                strncpy(matchedBuses[count], routes[i].busname, MAX_BUS_NAME - 1);
+                matchedBuses[count][MAX_BUS_NAME - 1] = '\0';
+                matchedFares[count] = routes[i].fare;
+                count++;
+            }
+        }
+    }
+    return count;
+}
 
-                total = routes[i].fare + routes[j].fare;
 
-                printf("No direct bus found. You need to change bus.\n");
-                //
-                printf("Step 1 : %s --> %s\n", routes[i].source, routes[i].destination);
-                printf("Bus    : %s\n", routes[i].busname);
-                printf("Fare   : Rs. %d\n", routes[i].fare);
-                //
-                printf("Step 2 : %s --> %s\n", routes[j].source, routes[j].destination);
-                printf("Bus    : %s\n", routes[j].busname);
-                printf("Fare   : Rs. %d\n", routes[j].fare);
-                //
-                printf("Total  : Rs. %d\n", total);
-                showfare(total);
+int getUserCategory() {
+    char input[20];
+    int choice;
+
+    printf("\nSelect your category:\n");
+    printf(" \n");
+    printf("[1] Old Age  (30%% discount)\n");
+    printf("[2] Student  (35%% discount)\n");
+    printf("[3] Normal   (no discount)\n");
+    printf(" \n");
+    printf("Enter choice (1-3): ");
+    getStringInput(input, sizeof(input));
+    choice = atoi(input);
+
+    switch (choice) {
+        case 1: return 1;
+        case 2: return 2;
+        case 3: return 3;
+        default:
+            printf("Invalid choice. Setting as Normal user.\n");
+            return 3;
+    }
+}
+
+
+void showFareSummary(const char *source, const char *dest,
+                     const char *busname, int baseFare, int category) {
+    int discountAmt = 0;
+    int finalFare   = baseFare;
+    const char *categoryName;
+
+    switch (category) {
+        case 1:
+            categoryName = "Old Age";
+            discountAmt  = (int)(baseFare * DISCOUNT_OLD_AGE);
+            finalFare    = baseFare - discountAmt;
+            break;
+        case 2:
+            categoryName = "Student";
+            discountAmt  = (int)(baseFare * DISCOUNT_STUDENT);
+            finalFare    = baseFare - discountAmt;
+            break;
+        default:
+            categoryName = "Normal";
+            discountAmt  = 0;
+            finalFare    = baseFare;
+            break;
+    }
+
+    printf("\n \n");
+    printf("       FARE SUMMARY\n");
+    printf(" \n");
+    printf("Source      : %s\n", source);
+    printf("Destination : %s\n", dest);
+    printf("Yatayat     : %s\n", busname);
+    printf(" \n");
+    printf("Base Fare   : Rs. %d\n", baseFare);
+    printf("Category    : %s\n", categoryName);
+    printf("Discount    : Rs. %d\n", discountAmt);
+    printf(" \n");
+    printf("Final Fare  : Rs. %d\n", finalFare);
+    printf(" \n");
+}
+
+
+
+int findTransferRoute(const char *source, const char *dest) {
+    for (int i = 0; i < totalRoutes; i++) {
+        if (!equalsIgnoreCase(routes[i].source, source)) continue;
+
+        const char *mid = routes[i].destination;
+
+        for (int j = 0; j < totalRoutes; j++) {
+            int fwd = equalsIgnoreCase(routes[j].source, mid) &&
+                      equalsIgnoreCase(routes[j].destination, dest);
+            int bwd = equalsIgnoreCase(routes[j].source, dest) &&
+                      equalsIgnoreCase(routes[j].destination, mid);
+
+            if (fwd || bwd) {
+                int totalFare = routes[i].fare + routes[j].fare;
+
+                printf("\nNo direct bus. You need to change buses!\n");
+                printf(" \n");
+                printf("STEP 1:\n");
+                printf("  From : %s\n", routes[i].source);
+                printf("  To   : %s\n", routes[i].destination);
+                printf("  Bus  : %s\n", routes[i].busname);
+                printf("  Fare : Rs. %d\n", routes[i].fare);
+                printf(" \n");
+                printf("STEP 2:\n");
+                printf("  From : %s\n", mid);
+                printf("  To   : %s\n", dest);
+                printf("  Bus  : %s\n", routes[j].busname);
+                printf("  Fare : Rs. %d\n", routes[j].fare);
+                printf(" \n");
+                printf("Total Base Fare : Rs. %d\n", totalFare);
+
+                int category = getUserCategory();
+                showFareSummary(source, dest, "(Transfer)", totalFare, category);
                 return 1;
             }
         }
@@ -182,40 +263,62 @@ int findtransfer(const char *source, const char *dest) {
     return 0;
 }
 
+
 int main() {
-    char source[MAX_station_name];
-    char destination[MAX_station_name];
-    int found; 
+    char source[MAX_STATION_NAME];
+    char destination[MAX_STATION_NAME];
+    char selInput[20];
+    int  selection;
 
-    printf("Smart Bus Route & Fare Finder\n");
+    printf(" \n");
+    printf("  Smart Bus Route Finder\n");
+    printf(" \n");
 
-    printf("Enter source: ");
-    getstringinput(source, MAX_station_name);
+    printf("Enter source station     : ");
+    getStringInput(source, MAX_STATION_NAME);
 
-    if (strlen(source) == 0) {
-        printf("Source cannot be empty.\n");
+    printf("Enter destination station: ");
+    getStringInput(destination, MAX_STATION_NAME);
+
+    if (equalsIgnoreCase(source, destination)) {
+        printf("Source and destination cannot be the same.\n");
         return 1;
     }
 
-    printf("Enter destination: ");
-    getstringinput(destination, MAX_station_name);
+    char matchedBuses[MAX_MATCHED_BUSES][MAX_BUS_NAME];
+    int  matchedFares[MAX_MATCHED_BUSES];
+    int  busCount = collectMatchingBuses(source, destination, matchedBuses, matchedFares);
 
-    if (strlen(destination) == 0) {
-        printf("Destination cannot be empty.\n");
-        return 1;
+    if (busCount == 0) {
+        int found = findTransferRoute(source, destination);
+        if (!found) {
+            printf("\nNo route found from %s to %s.\n", source, destination);
+        }
+        return 0;
     }
 
-    found = findroute(source, destination);
+    printf("\nAvailable Yatayat:\n");
+    printf(" \n");
+    for (int i = 0; i < busCount; i++) {
+        printf("[%d] %s\n", i + 1, matchedBuses[i]);
+    }
+    printf(" \n");
+    printf("Select yatayat (1-%d): ", busCount);
+    getStringInput(selInput, sizeof(selInput));
+    selection = atoi(selInput);
 
-    if (!found) {
-        found = findtransfer(source, destination);
+    int validChoice = (selection >= 1 && selection <= busCount);
+    switch (validChoice) {
+        case 1:
+            break;
+        default:
+            printf("Invalid selection.\n");
+            return 1;
     }
 
-    if (!found) {
-        printf("No route found from %s to %s.\n", source, destination);
-    }
+    int category = getUserCategory();
+    showFareSummary(source, destination, matchedBuses[selection - 1],
+                    matchedFares[selection - 1], category);
 
-    printf("Thank you!\n");
     return 0;
-    
 }
