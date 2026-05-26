@@ -9,7 +9,7 @@ This project simulates a basic transport route system. Users enter a source and 
 
 ## Project Submission Details
 
-Submitted by: Newton Giri
+Submitted by: Nabin Giri (nabin_5400)
 College: Kuleshwor Awas Campus, Kathmandu, Nepal
 Department: Department of Science
 Program: Bachelor of Information Technology (BIT)
@@ -134,13 +134,3 @@ Final Fare  : Rs. 26
 * Case-insensitive comparison
 * Modular function design
 
----
-
-If you want, I can now upgrade this into a **perfect final submission package** with:
-
-* report (Word/PDF structure)
-* viva questions + answers
-* flowchart
-* class diagram style explanation
-
-Just tell.
