@@ -1,3 +1,6 @@
+reedit readme we just add map navigation link on project graphic is pending 
+
+```markdown
 # Smart Bus Route & Fare Finder
 
 A C-based console application that helps users find bus routes between stations in the Kathmandu Valley. The system supports direct routes, transfer routes, and fare calculation with discount options based on user category.
@@ -133,4 +136,3 @@ Final Fare  : Rs. 26
 * Nested loops
 * Case-insensitive comparison
 * Modular function design
-
