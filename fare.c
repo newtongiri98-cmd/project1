@@ -15,6 +15,7 @@
 #define YELLOW  "\033[33m"
 #define CYAN    "\033[36m"
 #define WHITE   "\033[37m"
+void askMapNavigation(const char *source, const char *dest, const char *mid);
 
 struct route {
     char source[MAX_STATION_NAME];
