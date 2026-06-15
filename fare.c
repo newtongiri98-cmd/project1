@@ -7,7 +7,7 @@
 #define MAX_BUS_NAME      150
 #define MAX_MATCHED_BUSES 20
 #define DISCOUNT_OLD_AGE  0.30
-#define DISCOUNT_STUDENT  0.35
+#define DISCOUNT_STUDENT  0.45
 #define RESET   "\033[0m"
 #define BOLD    "\033[1m"
 #define RED     "\033[31m"
